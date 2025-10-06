@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset='utf-8' />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.css" rel="stylesheet" />
+
+  <!-- FullCalendar JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.8/index.global.min.js"></script>
+
+  <style>
+    #calendar {
+      max-width: 900px;
+      margin: auto;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">My Dashboard</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link active" aria-current="page" href="/calendar">Calendar</a></li>
+        <li class="nav-item"><a class="nav-link" href="/media">Media</a></li>
+        <li class="nav-item"><a class="nav-link" href="/files">Files</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div id="calendar"></div>
+</div>
+
+<!-- New Event Modal -->
+<div class="modal fade" id="newEventModal" tabindex="-1" aria-labelledby="newEventModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="newEventForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="newEventModalLabel">Add New Event</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="newEventDate" />
+        <div class="mb-3">
+          <label for="eventTitleInput" class="form-label">Title</label>
+          <input type="text" class="form-control" id="eventTitleInput" required />
+        </div>
+        <div class="mb-3">
+          <label for="eventDescriptionInput" class="form-label">Description (optional)</label>
+          <textarea class="form-control" id="eventDescriptionInput" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Add Event</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Event Detail Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventModalLabel">Event Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h4 id="modalTitle"></h4>
+        <p id="modalDescription"></p>
+        <p><strong>Date:</strong> <span id="modalDate"></span></p>
+      </div>
+      <div class="modal-footer">
+        <button id="deleteEventBtn" type="button" class="btn btn-danger">Delete Event</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('calendar');
+    const eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+    const newEventModal = new bootstrap.Modal(document.getElementById('newEventModal'));
+    const newEventForm = document.getElementById('newEventForm');
+
+    let currentEvent = null;
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      events: '/api/events',
+      selectable: true,
+      editable: false,
+
+      dateClick: function(info) {
+        // Open new event modal with selected date
+        document.getElementById('newEventDate').value = info.dateStr;
+        document.getElementById('eventTitleInput').value = '';
+        document.getElementById('eventDescriptionInput').value = '';
+        newEventModal.show();
+      },
+
+      eventClick: function(info) {
+        currentEvent = info.event;
+
+        // Fill modal content for event details
+        document.getElementById('modalTitle').textContent = currentEvent.title;
+        document.getElementById('modalDescription').textContent = currentEvent.extendedProps.description || "No description";
+        document.getElementById('modalDate').textContent = currentEvent.start.toLocaleDateString();
+
+        eventModal.show();
+      }
+    });
+
+    calendar.render();
+
+    // Handle new event form submission
+    newEventForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const title = document.getElementById('eventTitleInput').value.trim();
+      const description = document.getElementById('eventDescriptionInput').value.trim();
+      const start = document.getElementById('newEventDate').value;
+
+      if (!title) return; // validation
+
+      fetch('/api/events')
+        .then(r => r.json())
+        .then(events => {
+          events.push({ title, start, description });
+          return fetch('/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(events)
+          });
+        })
+        .then(() => {
+          newEventModal.hide();
+          calendar.refetchEvents();
+        });
+    });
+
+    // Handle delete event button click
+document.getElementById('deleteEventBtn').addEventListener('click', function () {
+  if (!currentEvent) return;
+
+  fetch('/api/events')
+    .then(r => r.json())
+    .then(events => {
+      const updatedEvents = events.filter(e =>
+        !(e.title === currentEvent.title && e.start === currentEvent.startStr)
+      );
+      return fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedEvents)
+      });
+    })
+    .then(() => {
+      eventModal.hide();
+      calendar.refetchEvents();
+    });
+});
+
+  });
+</script>
+
+</body>
+</html>

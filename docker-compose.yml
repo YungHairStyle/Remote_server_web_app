@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  dashboard:
+    build: .
+    ports:
+      - "80:4999"  # Host port 80 -> container port 4999 (Flask)
+    volumes:
+      - ~/media:/app/media
+      - ~/files:/app/files
+      - ~/data:/app/data
+      
+    restart: unless-stopped

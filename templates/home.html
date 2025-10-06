@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Home</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- JustGage dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/raphael@2.3.0/raphael.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/justgage@1.4.0/justgage.min.js"></script>
+
+  <style>
+  body {
+    background: #f8f9fa;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  nav {
+    margin-bottom: 20px;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: #333;
+  }
+
+  /* Stats list above widgets */
+  .stats-list {
+    max-width: 400px;
+    margin: 0 auto 40px;
+    padding: 0;
+    list-style: none;
+    font-weight: 600;
+    color: #555;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .stats-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+  }
+
+  /* Grid container */
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    padding: 0 10px 40px;
+  }
+
+  /* Individual widgets */
+  .widget {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 20px;
+    min-width: 0;
+    aspect-ratio: 1 / 1;
+    transition: box-shadow 0.3s ease;
+    text-align: center;
+  }
+
+  .widget:hover {
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.15);
+  }
+
+  /* Special spans for desktop */
+  @media (min-width: 768px) {
+    .widget-span-2 {
+      grid-column: span 2;
+      aspect-ratio: unset;
+    }
+
+    .widget-span-3 {
+      grid-column: span 3;
+      aspect-ratio: unset;
+    }
+  }
+
+  /* JustGage or chart container inside widget */
+  #spaceGauge {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Form styling */
+  textarea,
+  input[type="text"],
+  input[type="date"] {
+    width: 100%;
+    resize: none;
+  }
+</style>
+
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand" href="/">My Dashboard</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link active" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/calendar">Calendar</a></li>
+        <li class="nav-item"><a class="nav-link" href="/media">Media</a></li>
+        <li class="nav-item"><a class="nav-link" href="/files">Files</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <ul class="stats-list">
+    <li><strong>Total:</strong> {{ stats.total }} GB</li>
+    <li><strong>Used:</strong> {{ stats.used }} GB</li>
+    <li><strong>Free:</strong> {{ stats.free }} GB</li>
+  </ul>
+
+  <div class="grid-container">
+    
+    <!-- Widget 1: Gauge -->
+    <div class="widget">
+      <h6>Disk Usage</h6>
+      <div id="spaceGauge"></div>
+    </div>
+
+    <!-- Widget 2: Quick Note -->
+    <div class="widget">
+      <h6>Quick Note</h6>
+      <form id="noteForm">
+        <textarea id="noteText" rows="4" placeholder="Write something..." required class="form-control mb-2"></textarea>
+        <button type="submit" class="btn btn-primary w-100">Save</button>
+      </form>
+      <div id="noteStatus" class="mt-2"></div>
+    </div>
+
+    <!-- Widget 3: (blank or reuse later) -->
+    <div class="widget">
+    <h6>Note to Lycia</h6>
+    <form id="LyciaNote">
+      <textarea id="lyciaNoteText" rows="4" placeholder="Write something..." required class="form-control mb-2"></textarea>
+      <button type="submit" class="btn btn-primary w-100">Save</button>
+    </form>
+    <div id="lyciaNoteStatus" class="mt-2 text-center"></div>
+  </div>
+
+    <!-- Widget 4: Quick Event -->
+    <div class="widget">
+      <h6>Add Event</h6>
+      <form id="quickEventForm">
+        <input type="text" id="eventTitle" placeholder="Title" required class="form-control mb-2" />
+        <input type="date" id="eventDate" required class="form-control mb-2" />
+        <button type="submit" class="btn btn-success w-100">Add</button>
+      </form>
+      <div id="eventStatus" class="mt-2"></div>
+    </div>
+
+  </div>
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const used = {{ stats.used or 0 }};
+    const total = {{ stats.total or 1 }};
+    const usedPercent = Math.round((used / total) * 100);
+
+    new JustGage({
+      id: "spaceGauge",
+      value: usedPercent,
+      min: 0,
+      max: 100,
+      title: "Disk Space Used",
+      label: "%",
+      levelColors: ["#00ff00", "#f9c802", "#ff0000"],
+      gaugeWidthScale: 0.6,
+      counter: true,
+      hideMinMax: true
+    });
+  });
+
+  document.getElementById('noteForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const noteText = document.getElementById('noteText').value.trim();
+    const statusDiv = document.getElementById('noteStatus');
+
+    if (!noteText) {
+      statusDiv.textContent = 'Note is empty!';
+      return;
+    }
+
+    try {
+      const res = await fetch('/save_note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: noteText })
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        statusDiv.textContent = 'Note saved!';
+        document.getElementById('noteForm').reset();
+      } else {
+        statusDiv.textContent = 'Failed to save note: ' + result.error;
+      }
+    } catch (err) {
+      statusDiv.textContent = 'Error: ' + err.message;
+    }
+  });
+
+  // Quick Add Event handler
+  document.getElementById('quickEventForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('eventTitle').value.trim();
+    const date = document.getElementById('eventDate').value;
+    const statusDiv = document.getElementById('eventStatus');
+
+    if (!title || !date) {
+      statusDiv.textContent = 'Please fill in all fields.';
+      return;
+    }
+
+    try {
+      // Fetch existing events
+      let res = await fetch('/api/events');
+      let events = await res.json();
+
+      // Add new event
+      events.push({ title: title, start: date });
+
+      // Save updated events
+      res = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(events)
+      });
+
+      if (res.ok) {
+        statusDiv.textContent = 'Event added!';
+        document.getElementById('quickEventForm').reset();
+      } else {
+        const errRes = await res.json();
+        statusDiv.textContent = 'Failed to add event: ' + (errRes.error || 'Unknown error');
+      }
+    } catch (err) {
+      statusDiv.textContent = 'Error: ' + err.message;
+    }
+  });
+</script>
+<script>
+document.getElementById('LyciaNote').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const content = document.getElementById('lyciaNoteText').value.trim();
+  
+  if (!content) {
+    document.getElementById('lyciaNoteStatus').innerHTML = '<span class="text-danger">Note is empty</span>';
+    return;
+  }
+
+  const res = await fetch('/save_note_lycia', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content })
+  });
+
+  const data = await res.json();
+  if (res.ok) {
+    document.getElementById('lyciaNoteStatus').innerHTML = '<span class="text-success">Note saved!</span>';
+    document.getElementById('lyciaNoteText').value = '';
+  } else {
+    document.getElementById('lyciaNoteStatus').innerHTML = `<span class="text-danger">${data.error || 'Error saving note'}</span>`;
+  }
+});
+</script>
+
+</body>
+</html>

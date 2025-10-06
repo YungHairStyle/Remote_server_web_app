@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Media Gallery</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Lightbox CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/simplelightbox/dist/simple-lightbox.min.css" rel="stylesheet" />
+
+  <style>
+    .thumbnail {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      cursor: pointer;
+      margin: 5px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px #ccc;
+      transition: transform 0.2s;
+    }
+
+    .thumbnail:hover {
+      transform: scale(1.05);
+    }
+
+    .folder-link {
+      font-size: 1.1rem;
+    }
+
+    .video-wrapper {
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">My Dashboard</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/calendar">Calendar</a></li>
+        <li class="nav-item"><a class="nav-link active" aria-current="page" href="/media">Media</a></li>
+        <li class="nav-item"><a class="nav-link" href="/files">Files</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Content -->
+<div class="container">
+  {% if current_folder %}
+    <p><a href="/media" class="btn btn-secondary mb-3">⬅️ Back to Root</a></p>
+  {% endif %}
+
+  {% if folders %}
+    <h2>Folders</h2>
+    <div class="d-flex flex-wrap mb-4">
+      {% for folder in folders %}
+        <a href="/media/{{ current_folder ~ '/' if current_folder else '' }}{{ folder }}"
+           class="folder-link btn btn-outline-primary me-2 mb-2">
+           {{ folder }}
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if files %}
+    <h2>Files</h2>
+    <div class="d-flex flex-wrap">
+      {% for file in files %}
+        {% set path = current_folder ~ '/' if current_folder else '' %}
+        {% if file.lower().endswith('.mp4') %}
+          <div class="video-wrapper">
+            <video controls preload="metadata" class="thumbnail"
+                   src="/media_file/{{ path }}{{ file }}"></video>
+          </div>
+        {% elif file.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')) %}
+          <a href="/media_file/{{ path }}{{ file }}" class="image-link">
+            <img src="/media_file/{{ path }}{{ file }}" class="thumbnail" alt="{{ file }}" />
+          </a>
+        {% else %}
+          <p class="text-muted">Unsupported file: {{ file }}</p>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No media files found in this folder.</p>
+  {% endif %}
+</div>
+
+<!-- Scripts -->
+<!-- jQuery (required for SimpleLightbox) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Lightbox JS -->
+<script src="https://cdn.jsdelivr.net/npm/simplelightbox/dist/simple-lightbox.jquery.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    new SimpleLightbox('.image-link', {});
+  });
+</script>
+
+</body>
+</html>
